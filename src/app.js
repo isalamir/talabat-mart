@@ -1,7 +1,6 @@
 import './env.js';
 import express from 'express';
 import cors from 'cors';
-import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger.js';
 import identityRouter from './routes/identity.js';
 import ordersRouter from './routes/orders.js';
@@ -26,10 +25,36 @@ app.use('/api/tickets', ticketsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/admin', adminRouter);
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customSiteTitle: 'Talabat Mart Voice Agent API',
-  swaggerOptions: { defaultModelsExpandDepth: 1, defaultModelExpandDepth: 2 },
-}));
+// Serve Swagger UI from CDN — works on Vercel (no static file serving from node_modules)
+app.get('/docs', (_, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Talabat Mart Voice Agent API</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+</head>
+<body>
+<div id="swagger-ui"></div>
+<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+<script>
+window.onload = function() {
+  SwaggerUIBundle({
+    url: '/docs.json',
+    dom_id: '#swagger-ui',
+    presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+    layout: 'StandaloneLayout',
+    defaultModelsExpandDepth: 1,
+    defaultModelExpandDepth: 2,
+  });
+};
+</script>
+</body>
+</html>`);
+});
 app.get('/docs.json', (_, res) => res.json(swaggerSpec));
 
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'talabat-mart-voice-agent-api' }));
