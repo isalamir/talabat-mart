@@ -27,7 +27,7 @@ function validateTable(req, res) {
  * @openapi
  * /api/admin/stats:
  *   get:
- *     tags: [Admin]
+ *     tags: [Admin / Debug]
  *     summary: Row counts for every table
  *     responses:
  *       200:
@@ -49,7 +49,7 @@ router.get('/stats', async (req, res) => {
  * @openapi
  * /api/admin/seed:
  *   post:
- *     tags: [Admin]
+ *     tags: [Admin / Debug]
  *     summary: Wipe and re-seed the entire database
  *     responses:
  *       200:
@@ -68,7 +68,7 @@ router.post('/seed', async (req, res) => {
  * @openapi
  * /api/admin/{table}:
  *   get:
- *     tags: [Admin]
+ *     tags: [Admin / Debug]
  *     summary: List all rows in a table
  *     parameters:
  *       - in: path
@@ -97,7 +97,7 @@ router.get('/:table', async (req, res) => {
  * @openapi
  * /api/admin/{table}/{id}:
  *   get:
- *     tags: [Admin]
+ *     tags: [Admin / Debug]
  *     summary: Get a single row by ID
  *     parameters:
  *       - in: path
@@ -134,7 +134,7 @@ router.get('/:table/:id', async (req, res) => {
  * @openapi
  * /api/admin/{table}:
  *   post:
- *     tags: [Admin]
+ *     tags: [Admin / Debug]
  *     summary: Insert a new row into a table
  *     parameters:
  *       - in: path
@@ -190,7 +190,7 @@ router.post('/:table', async (req, res) => {
  * @openapi
  * /api/admin/{table}/{id}:
  *   patch:
- *     tags: [Admin]
+ *     tags: [Admin / Debug]
  *     summary: Update any fields on a row
  *     parameters:
  *       - in: path
@@ -257,7 +257,7 @@ router.patch('/:table/:id', async (req, res) => {
  * @openapi
  * /api/admin/{table}/{id}:
  *   delete:
- *     tags: [Admin]
+ *     tags: [Admin / Debug]
  *     summary: Delete a row by ID
  *     parameters:
  *       - in: path

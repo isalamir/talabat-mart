@@ -7,7 +7,7 @@ const router = Router();
  * @openapi
  * /api/inventory/store/{storeId}:
  *   get:
- *     tags: [Inventory]
+ *     tags: [Store / Staff Intents]
  *     summary: Get inventory for a dark store
  *     parameters:
  *       - in: path
@@ -52,7 +52,7 @@ router.get('/store/:storeId', async (req, res) => {
  * @openapi
  * /api/inventory/check:
  *   get:
- *     tags: [Inventory]
+ *     tags: [Store / Staff Intents]
  *     summary: Check availability of a specific item
  *     parameters:
  *       - in: query
@@ -111,7 +111,7 @@ router.get('/check', async (req, res) => {
  * @openapi
  * /api/inventory/{id}/out-of-stock:
  *   patch:
- *     tags: [Inventory]
+ *     tags: [Store / Staff Intents]
  *     summary: Mark an item as out of stock
  *     description: Called by store staff when a physical item is unavailable despite the system showing stock. Triggers a customer swap notification.
  *     parameters:
@@ -149,7 +149,7 @@ router.patch('/:id/out-of-stock', async (req, res) => {
  * @openapi
  * /api/inventory/{id}/quantity:
  *   patch:
- *     tags: [Inventory]
+ *     tags: [Store / Staff Intents]
  *     summary: Update item quantity
  *     parameters:
  *       - in: path

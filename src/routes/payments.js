@@ -7,7 +7,7 @@ const router = Router();
  * @openapi
  * /api/payments/order/{orderNumber}:
  *   get:
- *     tags: [Payments]
+ *     tags: [Customer Intents]
  *     summary: Get payment details for an order
  *     description: Returns charge amount, payment method, and current payment status. Used to verify billing issues during a call.
  *     parameters:
@@ -62,7 +62,7 @@ router.get('/order/:orderNumber', async (req, res) => {
  * @openapi
  * /api/payments/refund:
  *   post:
- *     tags: [Payments]
+ *     tags: [Customer Intents]
  *     summary: Process a refund
  *     description: |
  *       Initiates a refund for an order. Blocked if the order is already refunded or if it's a cash
@@ -163,7 +163,7 @@ router.post('/refund', async (req, res) => {
  * @openapi
  * /api/payments/credit:
  *   post:
- *     tags: [Payments]
+ *     tags: [Customer Intents]
  *     summary: Issue store credit to a customer
  *     description: Used when a customer reports a missing or wrong item — agent issues a credit without needing full escalation.
  *     requestBody:
@@ -238,7 +238,7 @@ router.post('/credit', async (req, res) => {
  * @openapi
  * /api/payments/credits/{customerId}:
  *   get:
- *     tags: [Payments]
+ *     tags: [Customer Intents]
  *     summary: Get credit balance and history for a customer
  *     parameters:
  *       - in: path

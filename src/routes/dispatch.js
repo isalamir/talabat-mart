@@ -7,7 +7,7 @@ const router = Router();
  * @openapi
  * /api/dispatch/rider/{riderId}:
  *   get:
- *     tags: [Dispatch]
+ *     tags: [Rider Intents]
  *     summary: Get a rider's current dispatch assignment
  *     parameters:
  *       - in: path
@@ -66,7 +66,7 @@ router.get('/rider/:riderId', async (req, res) => {
  * @openapi
  * /api/dispatch/assign:
  *   post:
- *     tags: [Dispatch]
+ *     tags: [Rider Intents]
  *     summary: Assign an available rider to an order
  *     description: Picks the first available active rider and assigns them to the given order. Used when the original rider is delayed or stuck.
  *     requestBody:
@@ -157,7 +157,7 @@ router.post('/assign', async (req, res) => {
  * @openapi
  * /api/dispatch/unreachable:
  *   post:
- *     tags: [Dispatch]
+ *     tags: [Rider Intents]
  *     summary: Report customer unreachable at drop-off
  *     description: Called by a rider when the customer is not answering. Creates a ticket and starts a 10-minute wait timer.
  *     requestBody:
@@ -213,7 +213,7 @@ router.post('/unreachable', async (req, res) => {
  * @openapi
  * /api/dispatch/rider/{riderId}/status:
  *   patch:
- *     tags: [Dispatch]
+ *     tags: [Rider Intents]
  *     summary: Update a rider's availability status
  *     parameters:
  *       - in: path
@@ -271,7 +271,7 @@ router.patch('/rider/:riderId/status', async (req, res) => {
  * @openapi
  * /api/dispatch/rider/{riderId}/earnings:
  *   get:
- *     tags: [Dispatch]
+ *     tags: [Rider Intents]
  *     summary: Get rider earnings summary
  *     description: Returns total earnings and delivered order count. Used when a rider calls about a payment question.
  *     parameters:

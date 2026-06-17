@@ -9,15 +9,15 @@ const options = {
       description:
         'Mock backend for the Breez AI Voice Agent handling Talabat Mart call center flows — customers, store staff, and riders.',
     },
-    servers: [{ url: 'http://localhost:3000', description: 'Local dev' }],
+    servers: [{ url: 'https://talabat-mart.vercel.app', description: 'Production' }],
     tags: [
-      { name: 'Identity', description: 'Caller authentication and identification' },
-      { name: 'Orders', description: 'Order management, status, and cancellations' },
-      { name: 'Payments', description: 'Charge lookup, refunds, and store credits' },
-      { name: 'Inventory', description: 'Dark store stock levels and availability' },
-      { name: 'Dispatch', description: 'Rider tracking and assignment' },
-      { name: 'Tickets', description: 'Support ticket creation and escalation' },
-      { name: 'Notifications', description: 'SMS notifications to customers (mocked)' },
+      { name: 'Identification', description: 'Identify any caller by phone, order number, or store ID — single unified endpoint' },
+      { name: 'Customer Intents', description: 'Order tracking, cancellation, refunds, and store credits — called by customers' },
+      { name: 'Store / Staff Intents', description: 'Inventory management and order packing updates — called by store staff' },
+      { name: 'Rider Intents', description: 'Rider assignment, status, earnings, and unreachable reports — called by riders' },
+      { name: 'Tickets', description: 'Support ticket creation, updates, and escalation — shared across all caller types' },
+      { name: 'Admin / Debug', description: 'Full CRUD access to every table and database re-seed — for admin use only' },
+      { name: 'Health', description: 'Service health check' },
     ],
     components: {
       schemas: {
@@ -120,7 +120,7 @@ const options = {
       },
     },
   },
-  apis: ['./src/routes/*.js'],
+  apis: ['./src/routes/*.js', './src/app.js'],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

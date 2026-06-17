@@ -7,7 +7,7 @@ const router = Router();
  * @openapi
  * /api/orders/{orderNumber}/status:
  *   get:
- *     tags: [Orders]
+ *     tags: [Customer Intents]
  *     summary: Get order status and ETA
  *     description: Returns real-time order status including rider info and a human-readable ETA message for the voice agent to read aloud.
  *     parameters:
@@ -83,7 +83,7 @@ router.get('/:orderNumber/status', async (req, res) => {
  * @openapi
  * /api/orders/{orderNumber}/cancel:
  *   patch:
- *     tags: [Orders]
+ *     tags: [Customer Intents]
  *     summary: Cancel an order
  *     description: |
  *       Cancels an order only if packing has not yet started (`packing_stage = not_started`).
@@ -165,7 +165,7 @@ router.patch('/:orderNumber/cancel', async (req, res) => {
  * @openapi
  * /api/orders/customer/{customerId}:
  *   get:
- *     tags: [Orders]
+ *     tags: [Customer Intents]
  *     summary: Get all orders for a customer
  *     parameters:
  *       - in: path
@@ -197,7 +197,7 @@ router.get('/customer/:customerId', async (req, res) => {
  * @openapi
  * /api/orders/{orderNumber}/status:
  *   patch:
- *     tags: [Orders]
+ *     tags: [Store / Staff Intents, Rider Intents]
  *     summary: Update order status or packing stage
  *     description: Internal endpoint used by store staff to progress an order through its lifecycle.
  *     parameters:

@@ -6,15 +6,17 @@ const router = Router();
 
 /**
  * @openapi
- * /api/identity/identify:
+ * /api/identity/:
  *   get:
- *     tags: [Identity]
- *     summary: Identify a caller by phone number or store ID
+ *     tags: [Identification]
+ *     summary: Identify a caller
  *     description: |
- *       Pass `phone` to identify an individual caller across customers, store staff, and riders.
- *       Pass `store_id` (4-digit) to look up a store and all its staff — useful when
- *       the caller's phone is not registered but they state their store ID.
- *       Accepts any Jordanian phone format (0790…, +962790…, 00962790…).
+ *       Identifies the caller by phone number, order number, or store ID.
+ *       Phone is tried first (resolves to customer, store staff, or rider).
+ *       `order_number` is a fallback when the phone is not registered.
+ *       `store_id` returns all staff and inventory for that store.
+ *       At least one identifier must be provided.
+ *       Accepts any Jordanian phone format: `0790…`, `+962790…`, `00962790…`.
  *     parameters:
  *       - in: query
  *         name: phone
@@ -23,6 +25,13 @@ const router = Router();
  *           type: string
  *         example: '0790520759'
  *         description: Caller phone — any Jordan format
+ *       - in: query
+ *         name: order_number
+ *         required: false
+ *         schema:
+ *           type: string
+ *         example: '5001'
+ *         description: Order number fallback when phone is not registered
  *       - in: query
  *         name: store_id
  *         required: false
@@ -40,34 +49,48 @@ const router = Router();
  *               properties:
  *                 type:
  *                   type: string
- *                   enum: [customer, store_staff, rider]
+ *                   enum: [customer, store_staff, rider, store]
  *                   example: customer
  *                 data:
  *                   type: object
  *                   description: Full profile with contextual data (orders/inventory/dispatch)
  *             examples:
  *               customer:
- *                 summary: Customer identified
+ *                 summary: Customer identified by phone
  *                 value:
  *                   type: customer
  *                   data:
- *                     id: 1
- *                     name: Ahmed Al-Rashid
- *                     phone: '+971501234567'
- *                     address: 'Dubai Marina, Building 5, Apt 302'
- *                     wallet_credits: 30
+ *                     id: 6001
+ *                     name: Ahmad Khalid
+ *                     phone: '+962790520759'
+ *                     wallet_credits: 4.5
  *                     recent_orders: []
  *               rider:
- *                 summary: Rider identified
+ *                 summary: Rider identified by phone
  *                 value:
  *                   type: rider
  *                   data:
- *                     id: 1
- *                     name: Raj Kumar
+ *                     id: 7001
+ *                     name: Samer Bataineh
  *                     status: on_delivery
  *                     current_order: null
+ *               order:
+ *                 summary: Customer identified by order number
+ *                 value:
+ *                   type: customer
+ *                   data:
+ *                     order_number: '5001'
+ *                     name: Ahmad Khalid
+ *               store:
+ *                 summary: Store lookup by store_id
+ *                 value:
+ *                   type: store
+ *                   data:
+ *                     store_id: '1001'
+ *                     staff: []
+ *                     inventory: []
  *       400:
- *         description: Missing phone parameter
+ *         description: No identifier provided
  *         content:
  *           application/json:
  *             schema:
@@ -85,10 +108,20 @@ const router = Router();
  *                   type: boolean
  *                   example: false
  */
-router.get('/identify', async (req, res) => {
-  const { phone, store_id } = req.query;
+router.get('/', async (req, res) => {
+  const { phone, store_id, order_number } = req.query;
 
-  // Store-level lookup — returns all staff + inventory for the store
+  // Fallback: identify by order number
+  if (order_number && !phone && !store_id) {
+    const order = await db.execute({
+      sql: 'SELECT o.*, c.name, c.phone, c.address FROM orders o JOIN customers c ON o.customer_id = c.id WHERE o.order_number = ?',
+      args: [order_number],
+    });
+    if (!order.rows.length) return res.status(404).json({ error: 'Order not found' });
+    return res.json({ type: 'customer', data: order.rows[0] });
+  }
+
+  // Store-level lookup
   if (store_id && !phone) {
     const [staff, inventory] = await Promise.all([
       db.execute({ sql: 'SELECT * FROM store_staff WHERE store_id = ?', args: [store_id] }),
@@ -103,7 +136,7 @@ router.get('/identify', async (req, res) => {
     });
   }
 
-  if (!phone) return res.status(400).json({ error: 'phone or store_id is required' });
+  if (!phone) return res.status(400).json({ error: 'phone, store_id, or order_number is required' });
 
   const normalized = normalizePhone(phone);
 
@@ -158,59 +191,6 @@ router.get('/identify', async (req, res) => {
   }
 
   return res.status(404).json({ error: 'Caller not found', authenticated: false });
-});
-
-/**
- * @openapi
- * /api/identity/identify/order:
- *   get:
- *     tags: [Identity]
- *     summary: Identify a customer by order number (fallback)
- *     description: Used when the phone number is not registered — the agent asks the caller for their order number instead.
- *     parameters:
- *       - in: query
- *         name: order_number
- *         required: true
- *         schema:
- *           type: string
- *         example: ORD-2024-001
- *     responses:
- *       200:
- *         description: Customer identified via order
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 type:
- *                   type: string
- *                   example: customer
- *                 data:
- *                   $ref: '#/components/schemas/Order'
- *       400:
- *         description: Missing order_number
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Order not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.get('/identify/order', async (req, res) => {
-  const { order_number } = req.query;
-  if (!order_number) return res.status(400).json({ error: 'order_number is required' });
-
-  const order = await db.execute({
-    sql: 'SELECT o.*, c.name, c.phone, c.address FROM orders o JOIN customers c ON o.customer_id = c.id WHERE o.order_number = ?',
-    args: [order_number],
-  });
-
-  if (!order.rows.length) return res.status(404).json({ error: 'Order not found' });
-  res.json({ type: 'customer', data: order.rows[0] });
 });
 
 export default router;

@@ -8,7 +8,6 @@ import paymentsRouter from './routes/payments.js';
 import inventoryRouter from './routes/inventory.js';
 import dispatchRouter from './routes/dispatch.js';
 import ticketsRouter from './routes/tickets.js';
-import notificationsRouter from './routes/notifications.js';
 import adminRouter from './routes/admin.js';
 
 const app = express();
@@ -22,7 +21,6 @@ app.use('/api/payments', paymentsRouter);
 app.use('/api/inventory', inventoryRouter);
 app.use('/api/dispatch', dispatchRouter);
 app.use('/api/tickets', ticketsRouter);
-app.use('/api/notifications', notificationsRouter);
 app.use('/api/admin', adminRouter);
 
 // Serve Swagger UI from CDN — works on Vercel (no static file serving from node_modules)
@@ -57,6 +55,16 @@ window.onload = function() {
 });
 app.get('/docs.json', (_, res) => res.json(swaggerSpec));
 
+/**
+ * @openapi
+ * /health:
+ *   get:
+ *     tags: [Health]
+ *     summary: Service health check
+ *     responses:
+ *       200:
+ *         description: Service is running
+ */
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'talabat-mart-voice-agent-api' }));
 
 app.use((err, req, res, next) => {
