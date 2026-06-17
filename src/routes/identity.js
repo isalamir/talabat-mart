@@ -7,7 +7,7 @@ const router = Router();
 /**
  * @openapi
  * /api/identity/:
- *   get:
+ *   post:
  *     tags: [Identification]
  *     summary: Identify a caller
  *     description: |
@@ -17,28 +17,25 @@ const router = Router();
  *       `store_id` returns all staff and inventory for that store.
  *       At least one identifier must be provided.
  *       Accepts any Jordanian phone format: `0790…`, `+962790…`, `00962790…`.
- *     parameters:
- *       - in: query
- *         name: phone
- *         required: false
- *         schema:
- *           type: string
- *         example: '0790520759'
- *         description: Caller phone — any Jordan format
- *       - in: query
- *         name: order_number
- *         required: false
- *         schema:
- *           type: string
- *         example: '5001'
- *         description: Order number fallback when phone is not registered
- *       - in: query
- *         name: store_id
- *         required: false
- *         schema:
- *           type: string
- *         example: '1001'
- *         description: 4-digit store ID (alternative to phone for staff)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               phone:
+ *                 type: string
+ *                 example: '0790520759'
+ *                 description: Caller phone — any Jordan format
+ *               order_number:
+ *                 type: string
+ *                 example: '5001'
+ *                 description: Order number fallback when phone is not registered
+ *               store_id:
+ *                 type: string
+ *                 example: '1001'
+ *                 description: 4-digit store ID (alternative to phone for staff)
  *     responses:
  *       200:
  *         description: Caller identified
@@ -108,8 +105,8 @@ const router = Router();
  *                   type: boolean
  *                   example: false
  */
-router.get('/', async (req, res) => {
-  const { phone, store_id, order_number } = req.query;
+router.post('/', async (req, res) => {
+  const { phone, store_id, order_number } = req.body;
 
   // Fallback: identify by order number
   if (order_number && !phone && !store_id) {
