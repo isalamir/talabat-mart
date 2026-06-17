@@ -24,14 +24,14 @@ const router = Router();
  *           schema:
  *             type: object
  *             properties:
- *               phone:
+ *               phone_number:
  *                 type: string
  *                 example: '0790520759'
  *                 description: Caller phone — any Jordan format
  *               order_number:
  *                 type: string
  *                 example: '5001'
- *                 description: Order number fallback when phone is not registered
+ *                 description: Order number fallback when phone_number is not registered
  *               store_id:
  *                 type: string
  *                 example: '1001'
@@ -106,10 +106,10 @@ const router = Router();
  *                   example: false
  */
 router.post('/', async (req, res) => {
-  const { phone, store_id, order_number } = req.body;
+  const { phone_number, store_id, order_number } = req.body;
 
   // Fallback: identify by order number
-  if (order_number && !phone && !store_id) {
+  if (order_number && !phone_number && !store_id) {
     const order = await db.execute({
       sql: 'SELECT o.*, c.name, c.phone, c.address FROM orders o JOIN customers c ON o.customer_id = c.id WHERE o.order_number = ?',
       args: [order_number],
@@ -119,7 +119,7 @@ router.post('/', async (req, res) => {
   }
 
   // Store-level lookup
-  if (store_id && !phone) {
+  if (store_id && !phone_number) {
     const [staff, inventory] = await Promise.all([
       db.execute({ sql: 'SELECT * FROM store_staff WHERE store_id = ?', args: [store_id] }),
       db.execute({ sql: 'SELECT * FROM inventory WHERE store_id = ?', args: [store_id] }),
@@ -133,9 +133,9 @@ router.post('/', async (req, res) => {
     });
   }
 
-  if (!phone) return res.status(400).json({ error: 'phone, store_id, or order_number is required' });
+  if (!phone_number) return res.status(400).json({ error: 'phone_number, store_id, or order_number is required' });
 
-  const normalized = normalizePhone(phone);
+  const normalized = normalizePhone(phone_number);
 
   const [customer, staff, rider] = await Promise.all([
     db.execute({ sql: 'SELECT * FROM customers WHERE phone = ?', args: [normalized] }),
