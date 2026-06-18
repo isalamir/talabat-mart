@@ -15,7 +15,7 @@ const router = Router();
  *         required: true
  *         schema:
  *           type: string
- *         example: STORE-001
+ *         example: 1001
  *       - in: query
  *         name: status
  *         schema:
@@ -60,13 +60,13 @@ router.get('/store/:storeId', async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *         example: STORE-001
+ *         example: 1001
  *       - in: query
  *         name: sku
  *         required: true
  *         schema:
  *           type: string
- *         example: MILK-001
+ *         example: AMILK1
  *     responses:
  *       200:
  *         description: Item availability
@@ -113,14 +113,14 @@ router.get('/check', async (req, res) => {
  *   patch:
  *     tags: [Store / Staff Intents]
  *     summary: Mark an item as out of stock
- *     description: Called by store staff when a physical item is unavailable despite the system showing stock. Triggers a customer swap notification.
+ *     description: Called by store staff when a physical item is unavailable despite the system showing stock. Updates quantity to 0 and status to out_of_stock.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         example: 2
+ *         example: 9002
  *     responses:
  *       200:
  *         description: Item marked out of stock
@@ -151,13 +151,14 @@ router.patch('/:id/out-of-stock', async (req, res) => {
  *   patch:
  *     tags: [Store / Staff Intents]
  *     summary: Update item quantity
+ *     description: Set the physical count. Automatically sets status to in_stock when quantity > 0, out_of_stock when 0.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         example: 1
+ *         example: 9002
  *     requestBody:
  *       required: true
  *       content:

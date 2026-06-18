@@ -16,7 +16,7 @@ const router = Router();
  *         required: true
  *         schema:
  *           type: string
- *         example: ORD-2024-001
+ *         example: "5001"
  *     responses:
  *       200:
  *         description: Payment details
@@ -60,107 +60,6 @@ router.get('/order/:orderNumber', async (req, res) => {
 
 /**
  * @openapi
- * /api/payments/refund:
- *   post:
- *     tags: [Customer Intents]
- *     summary: Process a refund
- *     description: |
- *       Initiates a refund for an order. Blocked if the order is already refunded or if it's a cash
- *       order that hasn't been delivered yet.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [order_number, reason]
- *             properties:
- *               order_number:
- *                 type: string
- *                 example: ORD-2024-005
- *               reason:
- *                 type: string
- *                 example: Order cancelled before packing
- *     responses:
- *       200:
- *         description: Refund processed
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 refund_amount:
- *                   type: number
- *                   example: 27.00
- *                 payment_method:
- *                   type: string
- *                 message:
- *                   type: string
- *                   example: Refund of AED 27.00 initiated successfully
- *       400:
- *         description: Validation error (e.g. cash order not yet delivered)
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Order not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       409:
- *         description: Order already refunded
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.post('/refund', async (req, res) => {
-  const { order_number, reason } = req.body;
-  if (!order_number || !reason) {
-    return res.status(400).json({ error: 'order_number and reason are required' });
-  }
-
-  const orderResult = await db.execute({
-    sql: 'SELECT * FROM orders WHERE order_number = ?',
-    args: [order_number],
-  });
-
-  if (!orderResult.rows.length) return res.status(404).json({ error: 'Order not found' });
-
-  const order = orderResult.rows[0];
-
-  if (order.payment_status === 'refunded') {
-    return res.status(409).json({ error: 'Order already refunded' });
-  }
-
-  if (order.payment_method === 'cash' && order.status !== 'delivered') {
-    return res.status(400).json({ error: 'Cash orders can only be refunded after delivery' });
-  }
-
-  await db.execute({
-    sql: `INSERT INTO refunds (order_id, customer_id, amount, reason, status) VALUES (?, ?, ?, ?, 'completed')`,
-    args: [order.id, order.customer_id, order.total_amount, reason],
-  });
-
-  await db.execute({
-    sql: `UPDATE orders SET payment_status = 'refunded', updated_at = datetime('now') WHERE order_number = ?`,
-    args: [order_number],
-  });
-
-  res.json({
-    success: true,
-    refund_amount: order.total_amount,
-    payment_method: order.payment_method,
-    message: `Refund of AED ${order.total_amount} initiated successfully`,
-  });
-});
-
-/**
- * @openapi
  * /api/payments/credit:
  *   post:
  *     tags: [Customer Intents]
@@ -176,17 +75,17 @@ router.post('/refund', async (req, res) => {
  *             properties:
  *               customer_id:
  *                 type: integer
- *                 example: 1
+ *                 example: 6001
  *               amount:
  *                 type: number
- *                 example: 15.00
+ *                 example: 2.50
  *               reason:
  *                 type: string
- *                 example: Missing item compensation - Whey Protein
+ *                 example: Compensation for missing white cheese in order 5001
  *               order_id:
  *                 type: integer
  *                 nullable: true
- *                 example: 1
+ *                 example: 5001
  *     responses:
  *       200:
  *         description: Credit issued
@@ -230,7 +129,7 @@ router.post('/credit', async (req, res) => {
     success: true,
     credited_amount: amount,
     total_credits: total.rows[0].total,
-    message: `AED ${amount} credit added to customer account`,
+    message: `${amount} JD credit added to customer account`,
   });
 });
 
@@ -246,7 +145,7 @@ router.post('/credit', async (req, res) => {
  *         required: true
  *         schema:
  *           type: integer
- *         example: 1
+ *         example: 6001
  *     responses:
  *       200:
  *         description: Credit history and total

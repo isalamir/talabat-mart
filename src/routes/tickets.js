@@ -23,21 +23,21 @@ const router = Router();
  *               order_id:
  *                 type: integer
  *                 nullable: true
- *                 example: 1
+ *                 example: 5001
  *               caller_type:
  *                 type: string
  *                 enum: [customer, store_staff, rider]
  *                 example: customer
  *               caller_id:
  *                 type: integer
- *                 example: 1
+ *                 example: 6001
  *               category:
  *                 type: string
  *                 example: missing_item
  *                 description: "One of: missing_item, wrong_item, refund_request, quality_concern, payment_issue, inventory_error, tablet_issue, rider_delay, customer_unreachable, order_damaged, earnings_question, account_issue"
  *               description:
  *                 type: string
- *                 example: Customer reports whey protein missing from delivery
+ *                 example: Ahmad reports white cheese missing from order 5001
  *               priority:
  *                 type: string
  *                 enum: [normal, high]
@@ -58,7 +58,7 @@ const router = Router();
  *                   type: boolean
  *                 ticket_number:
  *                   type: string
- *                   example: TKT-0003
+ *                   example: T1009
  *       400:
  *         description: Missing required fields
  *         content:
@@ -74,7 +74,7 @@ router.post('/', async (req, res) => {
   }
 
   const count = await db.execute({ sql: 'SELECT COUNT(*) as c FROM tickets', args: [] });
-  const ticketNumber = `TKT-${String(count.rows[0].c + 1).padStart(4, '0')}`;
+  const ticketNumber = `T${String(count.rows[0].c + 1).padStart(4, '0')}`;
 
   await db.execute({
     sql: `INSERT INTO tickets (ticket_number, order_id, caller_type, caller_id, category, description, priority, transcript)
@@ -142,6 +142,59 @@ router.get('/', async (req, res) => {
 
 /**
  * @openapi
+ * /api/tickets/caller/{caller_type}/{caller_id}:
+ *   get:
+ *     tags: [Tickets]
+ *     summary: Get all tickets for a caller
+ *     description: |
+ *       Returns all tickets raised by a specific customer, store staff member, or rider.
+ *       Use this after identity to show the caller their open issues without asking for a ticket number.
+ *     parameters:
+ *       - in: path
+ *         name: caller_type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [customer, store_staff, rider]
+ *         example: customer
+ *       - in: path
+ *         name: caller_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 6001
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [open, resolved, escalated]
+ *         description: Optionally filter by ticket status
+ *     responses:
+ *       200:
+ *         description: List of tickets for this caller
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Ticket'
+ */
+router.get('/caller/:caller_type/:caller_id', async (req, res) => {
+  const { caller_type, caller_id } = req.params;
+  const { status } = req.query;
+
+  let sql = 'SELECT * FROM tickets WHERE caller_type = ? AND caller_id = ?';
+  const args = [caller_type, caller_id];
+
+  if (status) { sql += ' AND status = ?'; args.push(status); }
+  sql += ' ORDER BY created_at DESC';
+
+  const result = await db.execute({ sql, args });
+  res.json(result.rows);
+});
+
+/**
+ * @openapi
  * /api/tickets/{ticketNumber}:
  *   get:
  *     tags: [Tickets]
@@ -152,7 +205,7 @@ router.get('/', async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *         example: TKT-0001
+ *         example: T1001
  *     responses:
  *       200:
  *         description: Ticket details
@@ -189,7 +242,7 @@ router.get('/:ticketNumber', async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *         example: TKT-0001
+ *         example: T1001
  *     requestBody:
  *       content:
  *         application/json:
@@ -239,7 +292,7 @@ router.patch('/:ticketNumber', async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *         example: TKT-0001
+ *         example: T1001
  *     requestBody:
  *       content:
  *         application/json:
