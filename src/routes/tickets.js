@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db.js';
+import { normalizePhone } from '../utils/phone.js';
 
 const router = Router();
 
@@ -10,34 +11,37 @@ const router = Router();
  *     tags: [Tickets]
  *     summary: Create a support ticket
  *     description: |
- *       Creates a ticket with full context of the voice call. The transcript field should contain
- *       the full conversation log so human agents never have to ask the caller to repeat themselves.
+ *       Creates a ticket from a voice call. All fields are optional — pass whatever context
+ *       the agent has. `order_number` is resolved to an order automatically if provided.
+ *       `phone` does not need to belong to a registered customer.
  *     requestBody:
- *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [caller_type, caller_id, category, description]
  *             properties:
- *               order_id:
- *                 type: integer
- *                 nullable: true
- *                 example: 5001
- *               caller_type:
+ *               order_number:
  *                 type: string
- *                 enum: [customer, store_staff, rider]
- *                 example: customer
- *               caller_id:
- *                 type: integer
- *                 example: 6001
+ *                 nullable: true
+ *                 example: '5101'
+ *               phone:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Caller phone in any Jordanian format. Does not need to be a registered customer.
+ *                 example: '0795000001'
+ *               name:
+ *                 type: string
+ *                 nullable: true
+ *                 example: Ismail Hammo
  *               category:
  *                 type: string
+ *                 nullable: true
+ *                 description: Free-text category — any string is accepted.
  *                 example: missing_item
- *                 description: "One of: missing_item, wrong_item, refund_request, quality_concern, payment_issue, inventory_error, tablet_issue, rider_delay, customer_unreachable, order_damaged, earnings_question, account_issue"
  *               description:
  *                 type: string
- *                 example: Ahmad reports white cheese missing from order 5001
+ *                 nullable: true
+ *                 example: White cheese was missing from the bag
  *               priority:
  *                 type: string
  *                 enum: [normal, high]
@@ -45,7 +49,7 @@ const router = Router();
  *               transcript:
  *                 type: string
  *                 nullable: true
- *                 example: "Agent: Hello... Customer: My order is missing an item..."
+ *                 example: "Agent: أهلاً، كيف أقدر أساعدك؟\nCustomer: الجبنة مش موجودة"
  *     responses:
  *       201:
  *         description: Ticket created
@@ -58,40 +62,71 @@ const router = Router();
  *                   type: boolean
  *                 ticket_number:
  *                   type: string
- *                   example: T1009
- *       400:
- *         description: Missing required fields
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *                   example: T2001
+ *                 order_number:
+ *                   type: string
+ *                   nullable: true
+ *                 customer_id:
+ *                   type: integer
+ *                   nullable: true
+ *                   description: Resolved from order_number if the order exists in the database
  */
 router.post('/', async (req, res) => {
-  const { order_id, caller_type, caller_id, category, description, priority, transcript } = req.body;
+  const {
+    order_number,
+    phone,
+    name,
+    category,
+    description,
+    priority,
+    transcript,
+  } = req.body;
 
-  if (!caller_type || !caller_id || !category || !description) {
-    return res.status(400).json({ error: 'caller_type, caller_id, category, description are required' });
+  // Resolve order and customer from order_number if provided
+  let order_id = null;
+  let customer_id = null;
+  let resolvedOrderNumber = null;
+
+  if (order_number) {
+    const orderResult = await db.execute({
+      sql: 'SELECT id, customer_id, order_number FROM orders WHERE order_number = ?',
+      args: [order_number],
+    });
+    if (orderResult.rows.length) {
+      order_id = orderResult.rows[0].id;
+      customer_id = orderResult.rows[0].customer_id;
+      resolvedOrderNumber = orderResult.rows[0].order_number;
+    }
   }
+
+  const normalizedPhone = phone ? normalizePhone(phone) : null;
 
   const count = await db.execute({ sql: 'SELECT COUNT(*) as c FROM tickets', args: [] });
   const ticketNumber = `T${String(count.rows[0].c + 1).padStart(4, '0')}`;
 
   await db.execute({
-    sql: `INSERT INTO tickets (ticket_number, order_id, caller_type, caller_id, category, description, priority, transcript)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    sql: `INSERT INTO tickets
+            (ticket_number, order_id, caller_type, caller_id, caller_phone, caller_name, category, description, priority, transcript)
+          VALUES (?, ?, 'customer', ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       ticketNumber,
-      order_id || null,
-      caller_type,
-      caller_id,
-      category,
-      description,
+      order_id,
+      customer_id,
+      normalizedPhone,
+      name || null,
+      category || null,
+      description || null,
       priority || 'normal',
       transcript || null,
     ],
   });
 
-  res.status(201).json({ success: true, ticket_number: ticketNumber });
+  res.status(201).json({
+    success: true,
+    ticket_number: ticketNumber,
+    order_number: resolvedOrderNumber,
+    customer_id,
+  });
 });
 
 /**
@@ -195,39 +230,82 @@ router.get('/caller/:caller_type/:caller_id', async (req, res) => {
 
 /**
  * @openapi
- * /api/tickets/{ticketNumber}:
+ * /api/tickets/{identifier}:
  *   get:
  *     tags: [Tickets]
- *     summary: Get a ticket by number
+ *     summary: Get ticket(s) by ticket number or phone number
+ *     description: |
+ *       Pass either a ticket number (e.g. `T1001`) or a phone number (any Jordanian format).
+ *       - **Ticket number** → returns a single ticket object.
+ *       - **Phone number** → returns all tickets linked to that phone (registered customer or caller_phone), newest first.
  *     parameters:
  *       - in: path
- *         name: ticketNumber
+ *         name: identifier
  *         required: true
  *         schema:
  *           type: string
- *         example: T1001
+ *         examples:
+ *           ticket:
+ *             summary: By ticket number
+ *             value: T1001
+ *           phone:
+ *             summary: By phone number
+ *             value: '0795000001'
  *     responses:
  *       200:
- *         description: Ticket details
+ *         description: Ticket or list of tickets
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Ticket'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Ticket'
+ *                 - type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Ticket'
  *       404:
- *         description: Ticket not found
+ *         description: Ticket not found / no tickets for this phone
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:ticketNumber', async (req, res) => {
-  const result = await db.execute({
-    sql: 'SELECT * FROM tickets WHERE ticket_number = ?',
-    args: [req.params.ticketNumber],
+router.get('/:identifier', async (req, res) => {
+  const { identifier } = req.params;
+
+  // Ticket number — starts with a letter (e.g. T1001)
+  if (/^[A-Za-z]/i.test(identifier)) {
+    const result = await db.execute({
+      sql: 'SELECT * FROM tickets WHERE ticket_number = ?',
+      args: [identifier],
+    });
+    if (!result.rows.length) return res.status(404).json({ error: 'Ticket not found' });
+    return res.json(result.rows[0]);
+  }
+
+  // Phone number — normalize and look up by caller_phone OR registered customer
+  const normalized = normalizePhone(identifier);
+
+  const customer = await db.execute({
+    sql: 'SELECT id FROM customers WHERE phone = ?',
+    args: [normalized],
   });
 
-  if (!result.rows.length) return res.status(404).json({ error: 'Ticket not found' });
-  res.json(result.rows[0]);
+  let sql, args;
+  if (customer.rows.length) {
+    const customer_id = customer.rows[0].id;
+    // Match by stored caller_phone OR by customer_id (for tickets created before phone was captured)
+    sql = `SELECT * FROM tickets
+           WHERE caller_phone = ? OR (caller_type = 'customer' AND caller_id = ?)
+           ORDER BY created_at DESC`;
+    args = [normalized, customer_id];
+  } else {
+    sql = 'SELECT * FROM tickets WHERE caller_phone = ? ORDER BY created_at DESC';
+    args = [normalized];
+  }
+
+  const result = await db.execute({ sql, args });
+  if (!result.rows.length) return res.status(404).json({ error: 'No tickets found for this phone number' });
+  return res.json(result.rows);
 });
 
 /**

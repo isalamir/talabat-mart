@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db.js';
+import { normalizePhone } from '../utils/phone.js';
 
 const router = Router();
 
@@ -739,18 +740,20 @@ router.get('/:orderNumber/payment', async (req, res) => {
 
 /**
  * @openapi
- * /api/orders/{orderNumber}/credits:
+ * /api/orders/credits/phone/{phoneNumber}:
  *   get:
  *     tags: [Customer Intents]
- *     summary: Get customer credit balance from order number
- *     description: Resolves the customer from the order number and returns their full credit history and total balance.
+ *     summary: Get customer credit balance by phone number
+ *     description: |
+ *       Resolves the customer by their phone number (any Jordanian format: 079…, +96279…, 0096279…)
+ *       and returns their full credit history and total balance.
  *     parameters:
  *       - in: path
- *         name: orderNumber
+ *         name: phoneNumber
  *         required: true
  *         schema:
  *           type: string
- *         example: '5001'
+ *         example: '0795000001'
  *     responses:
  *       200:
  *         description: Credit balance and history
@@ -761,11 +764,13 @@ router.get('/:orderNumber/payment', async (req, res) => {
  *               properties:
  *                 customer_name:
  *                   type: string
+ *                   example: Ismail Hammo
  *                 customer_id:
  *                   type: integer
+ *                   example: 6013
  *                 total:
  *                   type: number
- *                   example: 4.5
+ *                   example: 3.75
  *                 credits:
  *                   type: array
  *                   items:
@@ -775,27 +780,31 @@ router.get('/:orderNumber/payment', async (req, res) => {
  *                         type: number
  *                       reason:
  *                         type: string
+ *                       order_id:
+ *                         type: integer
+ *                         nullable: true
  *                       created_at:
  *                         type: string
  *                 message:
  *                   type: string
- *                   example: Ahmad, you have 4.50 JD in store credit.
+ *                   example: Ismail, you have 3.75 JD in store credit.
  *       404:
- *         description: Order not found
+ *         description: Customer not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:orderNumber/credits', async (req, res) => {
-  const { orderNumber } = req.params;
-  const orderResult = await db.execute({
-    sql: `SELECT o.customer_id, c.name FROM orders o JOIN customers c ON o.customer_id = c.id WHERE o.order_number = ?`,
-    args: [orderNumber],
-  });
-  if (!orderResult.rows.length) return res.status(404).json({ error: 'Order not found' });
+router.get('/credits/phone/:phoneNumber', async (req, res) => {
+  const normalized = normalizePhone(req.params.phoneNumber);
 
-  const { customer_id, name } = orderResult.rows[0];
+  const customerResult = await db.execute({
+    sql: 'SELECT id, name FROM customers WHERE phone = ?',
+    args: [normalized],
+  });
+  if (!customerResult.rows.length) return res.status(404).json({ error: 'Customer not found' });
+
+  const { id: customer_id, name } = customerResult.rows[0];
 
   const [credits, total] = await Promise.all([
     db.execute({

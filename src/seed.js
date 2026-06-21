@@ -37,7 +37,8 @@ export async function seedData() {
       ('Khalid Ali',      '+962782619435', 'khalid.ali@example.com',      'Madaba, King Hussein Street, House 4'),
       ('Rana Naser',      '+962779483162', 'rana.naser@example.com',      'Amman, Dabouk, Street 10, Villa 2'),
       ('Majed Hamdan',    '+962784629173', 'majed.hamdan@example.com',    'Amman, Tla Al Ali, City Street, Apt 6'),
-      ('Heba Rashed',     '+962793817264', 'heba.rashed@example.com',     'Amman, Marj Al Hamam, Yasmine Building, Apt 9');
+      ('Heba Rashed',     '+962793817264', 'heba.rashed@example.com',     'Amman, Marj Al Hamam, Yasmine Building, Apt 9'),
+      ('Ismail Hammo',    '+962795000001', 'ismail.hammo@example.com',    'Amman, Khalda, Mecca Street, Apt 15');
   `);
   // ── Store Staff (9)  IDs: 8001–8009 ────────────────────────────────────────
   await db.executeMultiple(`
@@ -76,7 +77,13 @@ export async function seedData() {
       ('5009', 6005, NULL, 'pending',           'not_started', '[{"name":"Lentils","qty":1,"price":3.8},{"name":"Rice","qty":1,"price":3.2}]',                                                         7.000,  'Irbid, City Centre, Falah Street, Apt 3',       45,   'card', 'paid'),
       ('5010', 6010, 7002, 'out_for_delivery',  'packed',      '[{"name":"White Cheese","qty":1,"price":3.75},{"name":"Thyme Mix","qty":2,"price":2.2},{"name":"Orange Juice","qty":1,"price":1.8}]', 9.950,  'Amman, Dabouk, Street 10, Villa 2',             20,   'card', 'paid'),
       ('5011', 6011, NULL, 'pending',           'not_started', '[{"name":"Pita Bread","qty":4,"price":1.5},{"name":"Milk","qty":1,"price":1.8}]',                                                      7.800,  'Amman, Tla Al Ali, City Street, Apt 6',         35,   'card', 'paid'),
-      ('5012', 6012, NULL, 'out_for_delivery',  'packed',      '[{"name":"Dates","qty":1,"price":4.5},{"name":"Olive Oil","qty":1,"price":7.25},{"name":"Tahini","qty":1,"price":3.5}]',              15.250, 'Amman, Marj Al Hamam, Yasmine Building, Apt 9', 18,   'cash', 'pending');
+      ('5012', 6012, NULL, 'out_for_delivery',  'packed',      '[{"name":"Dates","qty":1,"price":4.5},{"name":"Olive Oil","qty":1,"price":7.25},{"name":"Tahini","qty":1,"price":3.5}]',              15.250, 'Amman, Marj Al Hamam, Yasmine Building, Apt 9', 18,   'cash', 'pending'),
+
+      ('5101', 6013, 7001, 'out_for_delivery', 'packed',      '[{"name":"Pita Bread","qty":3,"price":1.5},{"name":"White Cheese","qty":1,"price":3.75},{"name":"Thyme Mix","qty":1,"price":2.2}]',              10.450, 'Amman, Khalda, Mecca Street, Apt 15',           12,   'card', 'paid'),
+      ('5102', 6013, NULL, 'preparing',        'not_started', '[{"name":"Olive Oil","qty":1,"price":7.25},{"name":"Eggs","qty":2,"price":2.5}]',                                                                12.250, 'Amman, Khalda, Mecca Street, Apt 15',           25,   'card', 'paid'),
+      ('5103', 6013, 7002, 'delivered',        'packed',      '[{"name":"Frozen Chicken","qty":1,"price":6.5},{"name":"Rice","qty":1,"price":3.2},{"name":"Mineral Water","qty":2,"price":2.2}]',               14.100, 'Amman, Khalda, Mecca Street, Apt 15',           0,    'card', 'paid'),
+      ('5104', 6013, NULL, 'pending',          'not_started', '[{"name":"Dates","qty":2,"price":4.5},{"name":"Tahini","qty":1,"price":3.5}]',                                                                   12.500, 'Amman, Khalda, Mecca Street, Apt 15',           40,   'cash', 'pending'),
+      ('5105', 6013, NULL, 'cancelled',        'not_started', '[{"name":"Hummus","qty":2,"price":2.5},{"name":"Yogurt","qty":1,"price":1.2}]',                                                                   6.200, 'Amman, Khalda, Mecca Street, Apt 15',           NULL, 'card', 'refunded');
   `);
 
   await db.execute({
@@ -126,13 +133,16 @@ export async function seedData() {
       ('T1007', 5002, 'customer',    6002, 'wrong_item',           'Sara: استلمت لبن بدل جبنة — received yogurt instead of white cheese, credit added',                  'resolved',  'normal', NULL,                                                                          'ai-agent'),
       ('T1008', 5006, 'rider',       7001, 'customer_unreachable', 'Samer cannot reach Sara at delivery address for order 5006',                                          'open',      'normal', NULL,                                                                          NULL),
       ('T1009', 5004, 'customer',    6004, 'late_delivery',        'Fatima: الطلب تأخر كثير — order 5004 has been pending for over 40 minutes',                          'open',      'normal', NULL,                                                                          NULL),
-      ('T1010', 5010, 'customer',    6010, 'missing_item',         'Rana: عصير البرتقال مش موجود — orange juice missing from order 5010',                                'open',      'normal', NULL,                                                                          NULL);
+      ('T1010', 5010, 'customer',    6010, 'missing_item',         'Rana: عصير البرتقال مش موجود — orange juice missing from order 5010',                                'open',      'normal', NULL,                                                                          NULL),
+      ('T1011', 5013, 'customer',    6013, 'missing_item',         'Ismail: الجبنة البيضاء مش موجودة — white cheese missing from order 5101',                          'open',      'normal', NULL,                                                                          NULL),
+      ('T1012', 5015, 'customer',    6013, 'quality_concern',      'Ismail: الدجاج المجمد كان فاسد — frozen chicken was spoiled in order 5103',                        'open',      'high',   'Agent: أهلاً إسماعيل\nCustomer: الدجاج كان فاسد بدي أتكلم مع مدير',           NULL);
   `);
 
   // ── Refunds ─────────────────────────────────────────────────────────────────
   await db.executeMultiple(`
     INSERT INTO refunds (order_id, customer_id, amount, reason, status) VALUES
-      (5005, 6001, 5.000, 'Order cancelled before packing started', 'completed');
+      (5005, 6001, 5.000, 'Order cancelled before packing started', 'completed'),
+      (5017, 6013, 6.200, 'Order cancelled before packing started', 'completed');
   `);
 
   // ── Credits ─────────────────────────────────────────────────────────────────
@@ -140,7 +150,8 @@ export async function seedData() {
     INSERT INTO credits (customer_id, amount, reason, order_id) VALUES
       (6001, 2.500, 'Compensation for missing white cheese',  5001),
       (6001, 2.000, 'Quality issue on a previous order',      NULL),
-      (6002, 2.500, 'Received yogurt instead of cheese',      5002);
+      (6002, 2.500, 'Received yogurt instead of cheese',      5002),
+      (6013, 3.750, 'Compensation for missing white cheese in order 5101', 5013);
   `);
 
   console.log('Seed data inserted successfully');
